@@ -1,0 +1,22 @@
+name: "Entra ID sync"
+description: "Add and sync groups in Entra ID. Requires AZ login to be run before this action for auth"
+inputs:
+  enterprise_app_object_id:
+    description: "The enterprise app that is used for GitHub SCIM sync"
+    required: true
+  app_role_id:
+    description: "The app role of the enterprise app to add new groups as"
+    required: true
+  admin_groups:
+    description: 'Input groups. Expected form is a string formatted like this: "<GitHub_Group 1>:<Entra Group 1>,<GitHub_Group 2>:<Entra Group 2>..."'
+    required: false
+  writer_groups:
+    description: 'Input groups. Functionality is identical to "admin_groups", either or both can be set'
+    required: false
+  reader_groups:
+    description: 'Input groups. Functionality is identical to "admin_groups", either or both can be set'
+    required: false
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

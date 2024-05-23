@@ -1,0 +1,6 @@
+.scratch/
+node_modules/
+*.log
+*.json
+!package*.json
+*local*
