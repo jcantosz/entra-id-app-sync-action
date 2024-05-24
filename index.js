@@ -4,8 +4,6 @@ const {
 } = require("@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials");
 const { Client } = require("@microsoft/microsoft-graph-client");
 const core = require("@actions/core");
-// required to use graph client
-require("isomorphic-fetch");
 
 function getClient() {
   // Require AZ login and use those creds --> https://learn.microsoft.com/en-us/javascript/api/@azure/identity/defaultazurecredential?view=azure-node-latest
