@@ -26,7 +26,7 @@ Create a application in Entra ID to authenticate with Azure. The following permi
 1. `Application.Read.All` - for listing and adding app role assignment
 1. `GroupMember.Read.All` - To get the groups provide
 
-To add these permissions navigate to: Entra ID > App Registrations > <your app> > Manage > API Permissions > Add a permission
+To add these permissions navigate to: Entra ID > App Registrations > your app > Manage > API Permissions > Add a permission
 
 You will likely also need these permissions on the default directory (Grant admin consent for Default Directory).
 
