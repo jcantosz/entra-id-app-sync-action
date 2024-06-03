@@ -170,6 +170,7 @@ async function main() {
     // Can't determine if the job completed unless it failed
     if (syncStatus == "Quarantine") {
       core.setFailed(`Sync job never completed. Currently in state "${syncStatus}", exiting.`);
+      process.exit();
     }
     core.info("Sync complete!");
   } else {

@@ -2,6 +2,41 @@
 
 Action that adds groups to an enterprise app in Entra ID. If any groups were added to the application then the app's sync job is run. If groups already exist on the application, they are skipped. Intended for use with [team synchronization](https://docs.github.com/en/enterprise-cloud@latest/admin/identity-and-access-management/using-saml-for-enterprise-iam/managing-team-synchronization-for-organizations-in-your-enterprise) between your IDP and GitHub
 
+## Operation
+
+The action will do the following:
+
+1. Authenticate with [Default Azure Credentails](https://learn.microsoft.com/en-us/javascript/api/@azure/identity/defaultazurecredential?view=azure-node-latest). Run `az login` before running this action.
+1. Check that each group provided exists in Azure ([`/groups/{id}` endpoint](https://learn.microsoft.com/en-us/graph/api/group-get?view=graph-rest-1.0&tabs=http))
+1. Check the App's app role assignments to see which groups are already added. ([`/servicePrincipals/{id}/appRoleAssignedTo` endpoint](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-list-approleassignedto?view=graph-rest-1.0&tabs=http))
+1. Add any groups that do not already exist to the app ([`/servicePrincipals/{id}/appRoleAssignedTo` endpoint](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-approleassignedto?view=graph-rest-1.0&tabs=http))
+1. If any groups were added in this way, sync the application
+   1. Get the sync jobs associated with this application. ([`/servicePrincipals/{id}/synchronization/jobs/` endpoint](https://learn.microsoft.com/en-us/graph/api/synchronization-synchronization-list-jobs?view=graph-rest-1.0&tabs=http))
+   1. Start the first job that was returned ([`/servicePrincipals/{id}/synchronization/jobs/{jobId}/start` endpoint](https://learn.microsoft.com/en-us/graph/api/synchronization-synchronizationjob-start?view=graph-rest-1.0&tabs=http))
+   1. We wait for 60 seconds and check if the job failed (`Code: Quarantine`) if so fail this action, otherwise pass. Code does not tell us if job has completed sucessfully, only if it has failed (possible states: NotConfigured, NotRun, Active, Paused, Quarantine).
+
+## Azure setup
+
+### Create app to authenticate
+
+Create a application in Entra ID to authenticate with Azure. The following permissions are required:
+
+1. `Application.ReadWrite.OwnedBy` - for syncing
+1. `AppRoleAssignment.ReadWrite.All` - for adding app role assignment
+1. `Application.Read.All` - for listing and adding app role assignment
+1. `GroupMember.Read.All` - To get the groups provide
+
+To add these permissions navigate to: Entra ID > App Registrations > <your app> > Manage > API Permissions > Add a permission
+
+You will likely also need these permissions on the default directory (Grant admin consent for Default Directory).
+
+Generate credentials for your application (Federated credentials should be preferred)
+
+### Get GitHub App information from Entra ID
+
+1. `enterprise_app_object_id` - Entra ID > Enterprise applications > GitHub App > Overview > Object
+1. `app_role_id` - Entra ID > App registrations > GitHub App > (Manage) App Roles > 'User' role
+
 ## Example workflow
 
 Workflow to add/sync groups with information submitted in an issue
