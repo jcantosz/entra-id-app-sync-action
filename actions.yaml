@@ -7,16 +7,33 @@ inputs:
   app_role_id:
     description: "The app role of the enterprise app to add new groups as"
     required: true
+
   admin_groups:
     description: 'Input groups. Expected form is a string formatted like this: "<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>..."'
     required: false
-  writer_groups:
+  maintain_groups:
     description: 'Input groups. Functionality is identical to "admin_groups", either or both can be set'
     required: false
-  reader_groups:
+  write_groups:
     description: 'Input groups. Functionality is identical to "admin_groups", either or both can be set'
     required: false
-
+  triage_groups:
+    description: 'Input groups. Functionality is identical to "admin_groups", either or both can be set'
+    required: false
+  read_groups:
+    description: 'Input groups. Functionality is identical to "admin_groups", either or both can be set'
+    required: false
+outputs:
+  admin_idp_mappings:
+    description: "Output groups. Same as input group but with Entra group ID replaced with displayName"
+  maintain_idp_mappings:
+    description: "Output groups. Same as input group but with Entra group ID replaced with displayName"
+  write_idp_mappings:
+    description: "Output groups. Same as input group but with Entra group ID replaced with displayName"
+  triage_idp_mappings:
+    description: "Output groups. Same as input group but with Entra group ID replaced with displayName"
+  read_idp_mappings:
+    description: "Output groups. Same as input group but with Entra group ID replaced with displayName"
 runs:
   using: "node20"
   main: "dist/index.js"
