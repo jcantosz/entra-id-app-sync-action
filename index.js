@@ -20,33 +20,100 @@ function getClient() {
 
 // Read all the inputs for this action
 function getInputs() {
+  // default permissions, no custom roles. pull, triage, push, maintain, admin
   return {
-    groups: [
-      core.getInput("admin_groups") || "",
-      core.getInput("writer_groups") || "",
-      core.getInput("reader_groups") || "",
-    ],
+    groups: {
+      admin: core.getInput("admin_groups") || "",
+      maintain: core.getInput("maintain_groups") || "",
+      write: core.getInput("write_groups") || "",
+      triage: core.getInput("triage_groups") || "",
+      read: core.getInput("read_groups") || "",
+    },
     enterpriseAppObjectId: core.getInput("enterprise_app_object_id"), // GitHub enterprise app's object id. Entra ID > Enterprise applications > GitHub App > Overview > Object ID
     appRoleId: core.getInput("app_role_id"), // "User" role type for app registration. Entra ID > App registrations > GitHub App > (Manage) App Roles > 'User' role ID
   };
 }
 
-function parseGroups(inputGroups) {
-  groupArray = [];
-  for (const group of inputGroups.split(",")) {
-    //capture the second element in group if it exists.
-    if ((azureGroup = group.split(":")[1])) {
-      groupArray.push(azureGroup.trim());
+function outputGroups(groupsArray) {
+  const outputs = {
+    // ensure that we always output each value, even if it is empty
+    admin: [],
+    maintain: [],
+    triage: [],
+    write: [],
+    read: [],
+  };
+
+  // obj format: {"permissions": "admin","github_team":"team","idp_group":"uuid", idp_group_name: "name"}
+  // collect outputs into array
+  for (const group of groupsArray) {
+    if (!(group.permissions in outputs)) {
+      outputs[group.permissions] = [];
     }
+    // make a string of gh_team:group_name when group name exists
+    let value = group.github_team;
+    if (group.idp_group_name) {
+      value = value.concat(":", group.idp_group_name);
+    }
+    // add value to array
+    outputs[group.permissions].push(value);
   }
+
+  // set each as output
+  for (const permission in outputs) {
+    const name = permission.concat("_", "idp_mappings");
+
+    const value = outputs[permission].toString();
+    //core.info(`Outputting: "${name}=${value}"`);
+    core.setOutput(name, value);
+  }
+}
+
+function groupToArray(type, groups) {
+  let groupArray = [];
+  for (const group of groups.split(",")) {
+    core.debug(`Processing group map: ${group}`);
+    const components = group.split(":");
+    const idpGroup = components.length > 1 ? components.pop() : ""; // if there are multiple elements, get the last one, otherwise get nothing
+    groupArray.push({
+      permissions: type,
+      github_team: components.join(":") || "", // Join remaining elements with ":" in case that was removed
+      idp_group: idpGroup,
+    });
+  }
+
   return groupArray;
 }
 
-async function checkGroupsExist(client, groups) {
-  for (const group of groups) {
-    core.info(`Checking if group "${group}" exists in Entra ID.`);
-    await client.api(`/groups/${group}`).get();
+function groupsToArray(groups) {
+  let groupsArr = [];
+  core.debug(`Groups to array ${groups}`);
+
+  // get all the keys
+  for (const group in groups) {
+    core.debug(`Parsing group ${group} (${groups[group]})`);
+    if (groups[group]) {
+      curr = groupToArray(group, groups[group]);
+      groupsArr = groupsArr.concat(curr);
+    }
   }
+  return groupsArr;
+}
+
+function getUniqueGroups(groupsArray) {
+  const uniqueGroups = [];
+  for (const group of groupsArray) {
+    const idpGroup = group.idp_group;
+    if (idpGroup && !uniqueGroups.includes(idpGroup)) {
+      uniqueGroups.push(idpGroup);
+    }
+  }
+  return uniqueGroups;
+}
+
+async function getIdpGroupName(client, group) {
+  core.info(`Getting group name for "${group}"`);
+  return (await client.api(`/groups/${group}`).select("displayName").get()).displayName;
 }
 
 // Get groups that currently have the desired app role assignment for the enterprise app
@@ -118,7 +185,7 @@ async function runSync(client, servicePrincipal, syncJob) {
   while (sleepTime < timeout) {
     core.info("...");
     sleepTime += sleep_interval;
-    sleep(sleep_interval);
+    await sleep(sleep_interval);
     if (sleepTime >= timeout) {
       break;
     }
@@ -136,45 +203,51 @@ async function main() {
   const inputs = getInputs();
   core.debug(`Inputs: ${JSON.stringify(inputs)}`);
 
-  let addGroups = [];
-  // Read all the input AD groups and add them to an array
-  for (const item of inputs.groups) {
-    addGroups = addGroups.concat(parseGroups(item));
-  }
+  // We don't need all this, but I want this action to emit group name
+  const groupsArray = groupsToArray(inputs.groups);
+  const addGroups = getUniqueGroups(groupsArray);
 
-  // Filter array to remove duplicates
-  addGroups = addGroups.filter((value, index, array) => {
-    return array.indexOf(value) === index;
-  });
-
-  // TODO: check all groups in addGroups exist in EntraID
+  // Add an element to each object for the group name when a group exists
   core.info("Checking that each input group exists in Entra ID.");
-  await checkGroupsExist(client, addGroups);
+  for (const group of addGroups) {
+    const groupName = await getIdpGroupName(client, group);
+    core.info(`Mapping group id to group name: "${group}" --> "${groupName}"`);
+    groupsArray.map((element) => {
+      if (element.idp_group == group) element.idp_group_name = groupName;
+    });
+  }
+  core.info("\nOutputting teams with idp group names");
+  outputGroups(groupsArray);
+  // TODO: check all groups in addGroups exist in EntraID
+  //await checkGroupsExist(client, addGroups);
+  if (addGroups) {
+    core.info(`\nInput AD groups detected: "${addGroups}".`);
 
-  core.info(`Input AD groups detected: "${addGroups}".`);
+    core.info("Getting groups assigned to application.");
+    const appGroups = await getAppGroupAssignments(client, inputs.enterpriseAppObjectId, inputs.appRoleId);
+    core.debug(`AppGroups: ${JSON.stringify(appGroups)}`);
 
-  core.info("Getting groups assigned to application.");
-  const appGroups = await getAppGroupAssignments(client, inputs.enterpriseAppObjectId, inputs.appRoleId);
-  core.debug(`AppGroups: ${JSON.stringify(appGroups)}`);
+    //
+    core.info("Checking if any input groups needs to be added to application.");
+    if (await addGroupsToApp(client, inputs.enterpriseAppObjectId, inputs.appRoleId, addGroups, appGroups)) {
+      core.info("\nGroups added, syncing app.");
+      const syncJob = await getSyncJobId(client, inputs.enterpriseAppObjectId);
 
-  //
-  core.info("Checking if any input groups needs to be added to application.");
-  if (await addGroupsToApp(client, inputs.enterpriseAppObjectId, inputs.appRoleId, addGroups, appGroups)) {
-    core.info("Groups added, syncing app.");
-    const syncJob = await getSyncJobId(client, inputs.enterpriseAppObjectId);
+      core.debug(`Sync Job ID: "${syncJob}".`);
 
-    core.debug(`Sync Job ID: "${syncJob}".`);
+      const syncStatus = await runSync(client, inputs.enterpriseAppObjectId, syncJob);
 
-    const syncStatus = await runSync(client, inputs.enterpriseAppObjectId, syncJob);
-
-    // Can't determine if the job completed unless it failed
-    if (syncStatus == "Quarantine") {
-      core.setFailed(`Sync job never completed. Currently in state "${syncStatus}", exiting.`);
-      process.exit();
+      // Can't determine if the job completed unless it failed
+      if (syncStatus == "Quarantine") {
+        core.setFailed(`Sync job in state "${syncStatus}". Exiting.`);
+        process.exit();
+      }
+      core.info("Sync complete.");
+    } else {
+      core.info("No changes to app made, not syncing.");
     }
-    core.info("Sync complete!");
   } else {
-    core.info("No changes to app made, not syncing.");
+    core.info(`No input AD groups detected. Exiting`);
   }
 }
 

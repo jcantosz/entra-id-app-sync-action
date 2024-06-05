@@ -77,9 +77,9 @@ jobs:
           # Input groups. Expected form is a string formatted like this: "<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>..."
           admin_groups: ${{steps.issue-parser.outputs.issueparser_admin-groups}}
           # Input groups. Functionality is identical to "admin_groups", either or both can be set
-          writer_groups: ${{steps.issue-parser.outputs.issueparser_writer-groups}}
+          write_groups: ${{steps.issue-parser.outputs.issueparser_write-groups}}
           # Input groups. Functionality is identical to "admin_groups", either or both can be set
-          reader_groups: ${{steps.issue-parser.outputs.issueparser_reader-groups}}
+          read_groups: ${{steps.issue-parser.outputs.issueparser_read-groups}}
 ```
 
 ## Parameters
@@ -89,8 +89,19 @@ jobs:
 | enterprise_app_object_id | The enterprise app that is used for GitHub sync.                                                                                                  | `none`  | `true`   | Find this value in: Entra ID > Enterprise applications > GitHub App > Overview > Object ID                                                                      |
 | app_role_id              | The app role of the enterprise app to add new groups as.                                                                                          | `none`  | `true`   | Find this value in: Entra ID > App registrations > GitHub App > (Manage) App Roles > 'User' role ID                                                             |
 | admin_groups             | Input groups. Expected form is a string formatted like this: `<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GitHub_Team_2_Name>:<Entra_Group_2_ID>...` | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
-| writer_groups            | Input groups. Functionality is identical to `admin_groups`, either or both can be set                                                             | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
-| reader_groups            | Input groups. Functionality is identical to `admin_groups`, either or both can be set                                                             | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
+| maintain_groups          | Input groups. Functionality is identical to `admin_groups`, either or both can be set                                                             | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
+| write_groups             | Input groups. Functionality is identical to `admin_groups`, either or both can be set                                                             | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
+| triage_groups            | Input groups. Functionality is identical to `admin_groups`, either or both can be set                                                             | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
+| read_groups              | Input groups. Functionality is identical to `admin_groups`, either or both can be set                                                             | `none`  | `false`  | Exists for compatibility with larger workflow that provisions multiple GitHub groups with varying permission levels. Could be combined into single group input. |
+
+## Outputs
+
+| output | description |
+| admin_idp_mappings | Same as input `admin_groups` but with Entra group ids replaced with their display name |
+| maintain_idp_mappings | Same as input `maintain_groups` but with Entra group ids replaced with their display name |
+| write_idp_mappings | Same as input `write_groups` but with Entra group ids replaced with their display name |
+| triage_idp_mappings | Same as input `triage_groups` but with Entra group ids replaced with their display name |
+| read_idp_mappings | Same as input `read_groups` but with Entra group ids replaced with their display name |
 
 ## Sample issue template
 
@@ -113,15 +124,15 @@ body:
       description: "Groups to add as **admin teams** in GitHub. Of the form: `<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>`"
       placeholder: "team1:<UUID>, team2:<UUID>"
   - type: input
-    id: writer-groups
+    id: write-groups
     attributes:
-      label: Writer groups
-      description: "Groups to add as **writer teams** in GitHub. Of the form: `<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>`"
+      label: write groups
+      description: "Groups to add as **write teams** in GitHub. Of the form: `<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>`"
       placeholder: "team1:<UUID>, team2:<UUID>"
   - type: input
-    id: reader-groups
+    id: read-groups
     attributes:
-      label: Reader groups
-      description: "Groups to add as **reader teams** in GitHub. Of the form: `<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>`"
+      label: read groups
+      description: "Groups to add as **read teams** in GitHub. Of the form: `<GitHub_Team_1_Name>:<Entra_Group_1_ID>,<GGitHub_Team_2_Name>:<Entra_Group_2_ID>`"
       placeholder: "team1:<UUID>, team2:<UUID>"
 ```
