@@ -96,12 +96,13 @@ jobs:
 
 ## Outputs
 
-| output | description |
-| admin_idp_mappings | Same as input `admin_groups` but with Entra group ids replaced with their display name |
+| output                | description                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| admin_idp_mappings    | Same as input `admin_groups` but with Entra group ids replaced with their display name    |
 | maintain_idp_mappings | Same as input `maintain_groups` but with Entra group ids replaced with their display name |
-| write_idp_mappings | Same as input `write_groups` but with Entra group ids replaced with their display name |
-| triage_idp_mappings | Same as input `triage_groups` but with Entra group ids replaced with their display name |
-| read_idp_mappings | Same as input `read_groups` but with Entra group ids replaced with their display name |
+| write_idp_mappings    | Same as input `write_groups` but with Entra group ids replaced with their display name    |
+| triage_idp_mappings   | Same as input `triage_groups` but with Entra group ids replaced with their display name   |
+| read_idp_mappings     | Same as input `read_groups` but with Entra group ids replaced with their display name     |
 
 ## Sample issue template
 
