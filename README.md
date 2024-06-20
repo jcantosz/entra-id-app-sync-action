@@ -44,13 +44,13 @@ Workflow to add/sync groups with information submitted in an issue
 ```yaml add_groups.yaml
 name: Add groups to Entra ID app and sync app
 on:
-  issue:
+  issues:
     types:
       - opened
 jobs:
   AddGroups:
     runs-on: ubuntu-latest
-    jobs:
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
 
